@@ -37,12 +37,6 @@ import shared.ConvergenceTrainer as ConvergenceTrainer
 from array import array
 
 
-
-"""
-Commandline parameter(s):
-   none
-"""
-
 N=70
 T=N/10
 fill = [2] * N
@@ -58,27 +52,6 @@ hcp = GenericHillClimbingProblem(ef, odd, nf)
 gap = GenericGeneticAlgorithmProblem(ef, odd, mf, cf)
 pop = GenericProbabilisticOptimizationProblem(ef, odd, df)
 
-"""
-rhc = RandomizedHillClimbing(hcp)
-fit = FixedIterationTrainer(rhc, 20000)
-fit.train()
-print "RHC: " + str(ef.value(rhc.getOptimal()))
-
-sa = SimulatedAnnealing(1E11, .95, hcp)
-fit = FixedIterationTrainer(sa, 20000)
-fit.train()
-print "SA: " + str(ef.value(sa.getOptimal()))
-
-ga = StandardGeneticAlgorithm(200, 100, 10, gap)
-fit = FixedIterationTrainer(ga, 1000)
-fit.train()
-print "GA: " + str(ef.value(ga.getOptimal()))
-
-mimic = MIMIC(100, 10, pop)
-fit = FixedIterationTrainer(mimic, 2000)
-fit.train()
-print "MIMIC: " + str(ef.value(mimic.getOptimal()))
-"""
 
 def tune_MIMIC():
         for samples in range(20,100,20):
@@ -89,26 +62,30 @@ def tune_MIMIC():
 
 #tune_MIMIC()
 
-def general_test_iter(algo, problem, no_iter, no_loops):
+def test_iter(algorithm, arguments, no_loops, no_iter):
         results = []
         for loop in range(no_loops):
-                fit = FixedIterationTrainer(algo, no_iter)
+                algo_init = algorithm(*arguments)
+                fit = FixedIterationTrainer(algo_init, no_iter)
                 fit.train()
-                results.append(problem.value(algo.getOptimal()))
+                results += [ef.value(algo_init.getOptimal())]
         return results
 
 def convergence():
-        converge_output = ["NO_ITER,RHC,SA,GA,MIMIC"]
-        for no_iter in range(1000,5000,1000):
-                line = str(no_iter) + ","
-                algos = [RandomizedHillClimbing(hcp), SimulatedAnnealing(1E11, .95, hcp),
-                StandardGeneticAlgorithm(200, 100, 10, gap), MIMIC(100, 10, pop)]
-                for algorithm in algos:
-                        line += str(general_test_iter(algorithm, ef, no_iter, 1)[0]) + ","
-                converge_output.append(line)
+        converge_output = ["Number of Iterations,Randomized Hill Climbing,Simulated Annealing,Genetic Algorithm,MIMIC"]
+        for no_iter in range(500,3000,500):
+                line = [str(no_iter)]
+                algorithms_arguments = [(RandomizedHillClimbing, (hcp,)), 
+                (SimulatedAnnealing, (1E11, .95, hcp)),
+                (StandardGeneticAlgorithm, (200,100,10,gap)),
+                (MIMIC, (100,10,pop))]
+                for algos, args in algorithms_arguments:
+                        algo_results = test_iter(algos, args, 10, no_iter)
+                        print(algo_results)
+                        avg_algo_results = sum(algo_results) / len(algo_results)*1.0
+                        line += [str(avg_algo_results)]
+                converge_output.append(",".join(line))
         return converge_output
-
-
 
 
 converge_list = convergence()
